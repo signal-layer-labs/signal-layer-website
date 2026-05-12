@@ -2,7 +2,7 @@
 
 import { Search } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 
 export function DirectoryFilters() {
   const searchParams = useSearchParams();
@@ -12,8 +12,8 @@ export function DirectoryFilters() {
 
   const availability = searchParams.get("availability") ?? "all";
 
-  const updateUrl = useMemo(
-    () => (next: { q?: string; availability?: string }) => {
+  const updateUrl = useCallback(
+    (next: { q?: string; availability?: string }) => {
       const params = new URLSearchParams(searchParams.toString());
       const nextQuery = next.q ?? query;
       const nextAvailability = next.availability ?? availability;

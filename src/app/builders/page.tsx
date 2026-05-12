@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { BuilderCard } from "@/components/BuilderCard";
 import { DirectoryFilters } from "@/components/DirectoryFilters";
 import { getApprovedBuilders } from "@/lib/builders";
@@ -31,7 +32,9 @@ export default async function BuildersPage({ searchParams }: BuildersPageProps) 
         </p>
       </div>
 
-      <DirectoryFilters />
+      <Suspense fallback={<div className="h-[78px] rounded-lg border border-line bg-panel/70" />}>
+        <DirectoryFilters />
+      </Suspense>
 
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         {builders.map((builder) => (

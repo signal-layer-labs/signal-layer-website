@@ -5,7 +5,7 @@ create extension if not exists pgcrypto;
 
 create table if not exists public.profiles (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references auth.users(id) on delete cascade,
+  user_id uuid not null unique references auth.users(id) on delete cascade,
   slug text not null unique,
   full_name text not null,
   headline text,
@@ -38,7 +38,6 @@ create table if not exists public.projects (
 );
 
 create index if not exists profiles_status_idx on public.profiles(status);
-create index if not exists profiles_user_id_idx on public.profiles(user_id);
 create index if not exists profiles_skills_idx on public.profiles using gin(skills);
 create index if not exists profiles_interests_idx on public.profiles using gin(interests);
 create index if not exists projects_profile_id_idx on public.projects(profile_id);
