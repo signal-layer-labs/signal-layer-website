@@ -3,6 +3,7 @@ import { ExternalLink, Github, Linkedin, MapPin } from "lucide-react";
 import { notFound } from "next/navigation";
 import { Tag } from "@/components/Tag";
 import { getBuilderBySlug } from "@/lib/builders";
+import { normalizeExternalUrl } from "@/lib/urls";
 
 type BuilderProfilePageProps = {
   params: Promise<{ slug: string }>;
@@ -61,12 +62,7 @@ export default async function BuilderProfilePage({ params }: BuilderProfilePageP
               <article className="rounded-md border border-line bg-field p-4" key={project.id}>
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <h3 className="font-semibold text-ink">{project.name}</h3>
-                  {project.url ? (
-                    <a className="inline-flex items-center gap-1.5 text-sm text-signal" href={project.url} target="_blank" rel="noreferrer">
-                      Visit
-                      <ExternalLink size={14} />
-                    </a>
-                  ) : null}
+                  <ProjectLink href={project.url} />
                 </div>
                 {project.description ? <p className="mt-2 text-sm leading-6 text-muted">{project.description}</p> : null}
                 <div className="mt-3 flex flex-wrap gap-2">
@@ -96,13 +92,30 @@ function TagGroup({ title, items }: { title: string; items: string[] }) {
   );
 }
 
-function ProfileLink({ href, label, icon }: { href: string | null; label: string; icon: ReactNode }) {
-  if (!href) {
+function ProjectLink({ href }: { href: string | null }) {
+  const normalizedHref = normalizeExternalUrl(href);
+
+  if (!normalizedHref) {
     return null;
   }
 
   return (
-    <a className="inline-flex items-center gap-1.5 hover:text-ink" href={href} target="_blank" rel="noreferrer">
+    <a className="inline-flex items-center gap-1.5 text-sm text-signal" href={normalizedHref} target="_blank" rel="noreferrer">
+      Visit
+      <ExternalLink size={14} />
+    </a>
+  );
+}
+
+function ProfileLink({ href, label, icon }: { href: string | null; label: string; icon: ReactNode }) {
+  const normalizedHref = normalizeExternalUrl(href);
+
+  if (!normalizedHref) {
+    return null;
+  }
+
+  return (
+    <a className="inline-flex items-center gap-1.5 hover:text-ink" href={normalizedHref} target="_blank" rel="noreferrer">
       {icon}
       {label}
     </a>

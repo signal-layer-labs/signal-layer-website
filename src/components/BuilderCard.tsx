@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { ExternalLink, Github, Linkedin, MapPin } from "lucide-react";
 import Link from "next/link";
 import type { BuilderProfile } from "@/lib/types";
+import { normalizeExternalUrl } from "@/lib/urls";
 import { Tag } from "./Tag";
 
 type BuilderCardProps = {
@@ -47,12 +48,14 @@ export function BuilderCard({ profile }: BuilderCardProps) {
 }
 
 function ProfileLink({ href, label, icon }: { href: string | null; label: string; icon: ReactNode }) {
-  if (!href) {
+  const normalizedHref = normalizeExternalUrl(href);
+
+  if (!normalizedHref) {
     return null;
   }
 
   return (
-    <a className="inline-flex items-center gap-1.5 hover:text-ink" href={href} target="_blank" rel="noreferrer">
+    <a className="inline-flex items-center gap-1.5 hover:text-ink" href={normalizedHref} target="_blank" rel="noreferrer">
       {icon}
       {label}
     </a>
