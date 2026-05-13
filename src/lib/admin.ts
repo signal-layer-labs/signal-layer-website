@@ -77,3 +77,13 @@ export async function requireAdmin(request: Request): Promise<AdminCheck> {
 
   return { ok: true, email };
 }
+
+export async function getAdminStatus(request: Request) {
+  const admin = await requireAdmin(request);
+
+  if (!admin.ok) {
+    return { isAdmin: false };
+  }
+
+  return { isAdmin: true };
+}

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AdminNavLink } from "./AdminNavLink";
 
 export function SiteHeader() {
   return (
@@ -11,6 +12,7 @@ export function SiteHeader() {
           <Link className="rounded-md px-3 py-2 transition hover:bg-panel hover:text-ink" href="/builders">
             Builders
           </Link>
+          <AdminNavLink />
           <Link className="rounded-md border border-line px-3 py-2 text-ink transition hover:border-signal/60" href="/profile/edit">
             Edit profile
           </Link>

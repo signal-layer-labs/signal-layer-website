@@ -58,6 +58,14 @@ function getProfileRedirectUrl() {
   return new URL("/profile/edit", window.location.origin).toString();
 }
 
+function normalizeEmail(value: string) {
+  return value.trim().toLowerCase();
+}
+
+function isValidEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeEmail(value));
+}
+
 function getGithubUrlFromMetadata(metadata: Record<string, unknown> | null | undefined) {
   const username = ["user_name", "preferred_username", "login", "nickname"]
     .map((key) => metadata?.[key])
@@ -115,6 +123,10 @@ export function ProfileEditor() {
   const [projects, setProjects] = useState<ProjectForm[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const [isBusy, setIsBusy] = useState(false);
+  const normalizedEmail = normalizeEmail(email);
+  const hasEmailInput = normalizedEmail.length > 0;
+  const canSendEmailLink = !isBusy && isValidEmail(email);
+  const emailHelpText = hasEmailInput && !isValidEmail(email) ? "Enter a valid email address to enable the sign-in link." : "Use the email connected to your builder profile.";
 
   useEffect(() => {
     if (!supabase) {
@@ -200,9 +212,14 @@ export function ProfileEditor() {
       return;
     }
 
+    if (!isValidEmail(email)) {
+      setMessage("Enter a valid email address before requesting a sign-in link.");
+      return;
+    }
+
     setIsBusy(true);
     const { error } = await supabase.auth.signInWithOtp({
-      email,
+      email: normalizedEmail,
       options: {
         emailRedirectTo: getProfileRedirectUrl()
       }
@@ -328,23 +345,43 @@ export function ProfileEditor() {
           Email access
           <span className="h-px flex-1 bg-line" />
         </div>
-        <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-          <input
-            className="h-11 flex-1 rounded-md border border-line bg-field px-3 text-sm text-ink outline-none focus:border-signal"
-            onChange={(event) => setEmail(event.target.value)}
-            placeholder="you@example.com"
-            type="email"
-            value={email}
-          />
+        <form
+          className="mt-6 flex flex-col gap-3 sm:flex-row"
+          onSubmit={(event) => {
+            event.preventDefault();
+            sendMagicLink();
+          }}
+        >
+          <div className="grid flex-1 gap-2">
+            <input
+              autoCapitalize="none"
+              autoComplete="email"
+              autoCorrect="off"
+              className="h-11 rounded-md border border-line bg-field px-3 text-sm text-ink outline-none transition placeholder:text-muted focus:border-signal"
+              inputMode="email"
+              onBlur={() => setEmail(normalizedEmail)}
+              onChange={(event) => {
+                setEmail(event.target.value);
+                if (message?.startsWith("Enter a valid email")) {
+                  setMessage(null);
+                }
+              }}
+              placeholder="you@example.com"
+              type="email"
+              value={email}
+            />
+            <p className={`text-xs ${hasEmailInput && !isValidEmail(email) ? "text-signal" : "text-muted"}`}>{emailHelpText}</p>
+          </div>
           <button
-            className="rounded-md bg-signal px-4 py-2 text-sm font-semibold text-canvas disabled:opacity-60"
-            disabled={isBusy || !email}
-            onClick={sendMagicLink}
-            type="button"
+            aria-disabled={!canSendEmailLink}
+            className="h-11 rounded-md bg-signal px-4 py-2 text-sm font-semibold text-canvas transition disabled:cursor-not-allowed disabled:bg-line disabled:text-muted"
+            disabled={!canSendEmailLink}
+            title={!hasEmailInput ? "Enter your email to enable this button." : !isValidEmail(email) ? "Enter a valid email address." : undefined}
+            type="submit"
           >
             Send sign-in link
           </button>
-        </div>
+        </form>
         {message ? <p className="mt-4 text-sm text-muted">{message}</p> : null}
       </div>
     );
