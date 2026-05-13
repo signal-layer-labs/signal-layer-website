@@ -53,6 +53,10 @@ function splitList(value: string) {
     .filter(Boolean);
 }
 
+function getProfileRedirectUrl() {
+  return new URL("/profile/edit", window.location.origin).toString();
+}
+
 export function ProfileEditor() {
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const [email, setEmail] = useState("");
@@ -142,7 +146,7 @@ export function ProfileEditor() {
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: `${window.location.origin}/profile/edit`
+        emailRedirectTo: getProfileRedirectUrl()
       }
     });
     setIsBusy(false);

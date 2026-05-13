@@ -80,11 +80,46 @@ Open `http://localhost:3000`.
 
 1. Create a Supabase project.
 2. Enable email auth in Supabase Auth.
-3. Add your local and production URLs to the Supabase auth redirect allow list.
+3. Configure the Supabase auth URLs listed below.
 4. Run the SQL in `supabase/migrations/001_builder_directory.sql`.
 5. Add the Supabase URL and anon key to `.env.local`.
 
 Profiles are saved with `status = 'pending'` by default. To make a profile public, manually set `status = 'approved'` in Supabase.
+
+### Supabase Auth URLs
+
+In Supabase, go to Authentication -> URL Configuration.
+
+Set Site URL to:
+
+```text
+https://signal-layer-website.vercel.app
+```
+
+Add this production redirect URL:
+
+```text
+https://signal-layer-website.vercel.app/**
+```
+
+Add local redirect URLs for the ports you use during development:
+
+```text
+http://localhost:3000/**
+http://localhost:3001/**
+http://localhost:3002/**
+http://localhost:3003/**
+http://localhost:3004/**
+http://localhost:3005/**
+```
+
+The app sends Supabase email links back to the current browser origin plus `/profile/edit`. In production that should resolve to:
+
+```text
+https://signal-layer-website.vercel.app/profile/edit
+```
+
+If confirmation emails still point to an older domain, update the Supabase Site URL and redirect allow list, then send a new email link. Existing email links keep the redirect URL they were generated with.
 
 ## Database Schema
 
@@ -103,8 +138,9 @@ For admin moderation, use the Supabase dashboard or add a separate admin role/po
 
 1. Import the GitHub repository into Vercel.
 2. Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` in Vercel project settings.
-3. Add the deployed Vercel URL to Supabase Auth redirect URLs.
-4. Deploy.
+3. Confirm the Supabase Auth Site URL is `https://signal-layer-website.vercel.app`.
+4. Add `https://signal-layer-website.vercel.app/**` to Supabase Auth redirect URLs.
+5. Deploy.
 
 No secrets should be committed. The anon key is expected to be public, but it should still come from environment variables.
 
