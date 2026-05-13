@@ -1,7 +1,8 @@
 "use client";
 
 import { createSupabaseBrowserClient } from "@/lib/supabase";
-import { Plus, Save, Trash2 } from "lucide-react";
+import { isValidExternalUrl } from "@/lib/urls";
+import { Github, Plus, Save, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 type ProjectForm = {
@@ -57,6 +58,54 @@ function getProfileRedirectUrl() {
   return new URL("/profile/edit", window.location.origin).toString();
 }
 
+function getGithubUrlFromMetadata(metadata: Record<string, unknown> | null | undefined) {
+  const username = ["user_name", "preferred_username", "login", "nickname"]
+    .map((key) => metadata?.[key])
+    .find((value): value is string => typeof value === "string" && /^[a-zA-Z0-9-]+$/.test(value));
+
+  return username ? `https://github.com/${username}` : null;
+}
+
+function validateProfile(form: ProfileForm, projects: ProjectForm[]) {
+  const errors: string[] = [];
+
+  if (!form.full_name.trim()) {
+    errors.push("Full name is required.");
+  }
+
+  if (!form.slug.trim()) {
+    errors.push("Slug is required.");
+  } else if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(form.slug.trim())) {
+    errors.push("Slug must use lowercase letters, numbers, and hyphens.");
+  }
+
+  if (!form.headline.trim()) {
+    errors.push("Headline is required.");
+  }
+
+  if (!splitList(form.skills).length) {
+    errors.push("Add at least one skill.");
+  }
+
+  [
+    ["GitHub URL", form.github_url],
+    ["LinkedIn URL", form.linkedin_url],
+    ["Portfolio URL", form.portfolio_url]
+  ].forEach(([label, value]) => {
+    if (!isValidExternalUrl(value)) {
+      errors.push(`${label} must be a valid URL.`);
+    }
+  });
+
+  projects.forEach((project, index) => {
+    if (project.url.trim() && !isValidExternalUrl(project.url)) {
+      errors.push(`Project ${index + 1} URL must be valid.`);
+    }
+  });
+
+  return errors;
+}
+
 export function ProfileEditor() {
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const [email, setEmail] = useState("");
@@ -103,6 +152,15 @@ export function ProfileEditor() {
       }
 
       if (!data) {
+        const {
+          data: { user }
+        } = await supabase.auth.getUser();
+        const githubUrl = getGithubUrlFromMetadata(user?.user_metadata);
+
+        if (githubUrl) {
+          setForm((currentForm) => (currentForm.github_url ? currentForm : { ...currentForm, github_url: githubUrl }));
+        }
+
         return;
       }
 
@@ -153,13 +211,40 @@ export function ProfileEditor() {
     setMessage(error ? error.message : "Check your email for a sign-in link.");
   }
 
+  async function continueWithGitHub() {
+    if (!supabase) {
+      return;
+    }
+
+    setIsBusy(true);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "github",
+      options: {
+        redirectTo: getProfileRedirectUrl()
+      }
+    });
+
+    if (error) {
+      setIsBusy(false);
+      setMessage(error.message);
+    }
+  }
+
   async function saveProfile() {
     if (!supabase || !userId) {
       return;
     }
 
-    setIsBusy(true);
     setMessage(null);
+
+    const validationErrors = validateProfile(form, projects);
+
+    if (validationErrors.length) {
+      setMessage(validationErrors.join(" "));
+      return;
+    }
+
+    setIsBusy(true);
 
     const payload = {
       user_id: userId,
@@ -213,7 +298,7 @@ export function ProfileEditor() {
     }
 
     setIsBusy(false);
-    setMessage("Profile saved. It will appear in the directory after approval.");
+    setMessage("Your profile was saved and is pending review. Approved profiles appear publicly in the directory.");
   }
 
   if (!supabase) {
@@ -229,6 +314,20 @@ export function ProfileEditor() {
       <div className="rounded-lg border border-line bg-panel p-6">
         <h1 className="text-2xl font-semibold text-ink">Create or edit your profile</h1>
         <p className="mt-2 text-sm leading-6 text-muted">Sign in with an email link to manage your builder profile.</p>
+        <button
+          className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-md border border-line px-4 py-2.5 text-sm font-semibold text-ink hover:border-signal/60 sm:w-auto"
+          disabled={isBusy}
+          onClick={continueWithGitHub}
+          type="button"
+        >
+          <Github size={17} />
+          Continue with GitHub
+        </button>
+        <div className="mt-6 flex items-center gap-3 text-xs uppercase tracking-[0.18em] text-muted">
+          <span className="h-px flex-1 bg-line" />
+          Email access
+          <span className="h-px flex-1 bg-line" />
+        </div>
         <div className="mt-6 flex flex-col gap-3 sm:flex-row">
           <input
             className="h-11 flex-1 rounded-md border border-line bg-field px-3 text-sm text-ink outline-none focus:border-signal"
@@ -257,7 +356,7 @@ export function ProfileEditor() {
         <p className="text-sm uppercase tracking-[0.22em] text-signal">Builder profile</p>
         <h1 className="mt-3 text-3xl font-semibold text-ink">Create or edit your public profile</h1>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">
-          New and edited profiles are saved as pending by default so the directory can stay focused and calm.
+          New and edited profiles are saved as pending by default. Approved profiles appear publicly in the directory.
         </p>
       </div>
 
@@ -323,10 +422,32 @@ export function ProfileEditor() {
         ))}
       </section>
 
+      <section className="rounded-lg border border-line bg-panel p-5">
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <span className="rounded-full border border-signal/40 bg-signal/10 px-2.5 py-1 text-xs font-medium text-signal">Pending review preview</span>
+          {form.open_to_collaboration ? <span className="rounded-full border border-line px-2.5 py-1 text-xs text-muted">Open to collaboration</span> : null}
+          {form.open_to_opportunities ? <span className="rounded-full border border-line px-2.5 py-1 text-xs text-muted">Open to opportunities</span> : null}
+        </div>
+        <h2 className="text-xl font-semibold text-ink">{form.full_name || "Your name"}</h2>
+        <p className="mt-2 text-sm leading-6 text-muted">{form.headline || "Your headline will appear here."}</p>
+        {form.bio ? <p className="mt-4 whitespace-pre-wrap text-sm leading-7 text-muted">{form.bio}</p> : null}
+        <div className="mt-4 flex flex-wrap gap-2">
+          {splitList(form.skills).length ? (
+            splitList(form.skills).map((skill) => (
+              <span className="rounded-full border border-line bg-field px-2.5 py-1 text-xs text-muted" key={skill}>
+                {skill}
+              </span>
+            ))
+          ) : (
+            <span className="text-sm text-muted">Add skills to make the profile easier to find.</span>
+          )}
+        </div>
+      </section>
+
       <div className="flex flex-wrap items-center gap-3">
         <button
           className="inline-flex items-center gap-2 rounded-md bg-signal px-4 py-2 text-sm font-semibold text-canvas disabled:opacity-60"
-          disabled={isBusy || !form.full_name || !form.slug}
+          disabled={isBusy}
           onClick={saveProfile}
           type="button"
         >

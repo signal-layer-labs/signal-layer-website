@@ -25,6 +25,10 @@ This MVP starts with the simplest useful foundation. It is not LinkedIn, a job b
 - Public builder profiles at `/builders/[slug]`
 - Authenticated profile editor at `/profile/edit`
 - Basic Supabase email-link auth
+- GitHub OAuth through Supabase Auth
+- Minimal admin review page at `/admin/profiles`
+- Pending profile review UX with a local preview
+- Basic profile validation before save
 - Skills, interests, languages, location, timezone, and availability fields
 - GitHub, LinkedIn, portfolio, and project links
 - Profile status: `pending`, `approved`, `hidden`
@@ -66,7 +70,11 @@ Add your Supabase project values:
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+ADMIN_EMAILS=
 ```
+
+`SUPABASE_SERVICE_ROLE_KEY` and `ADMIN_EMAILS` are only needed for the admin profile review page. Keep the service role key server-side only. Do not prefix it with `NEXT_PUBLIC_`.
 
 Run locally:
 
@@ -85,6 +93,19 @@ Open `http://localhost:3000`.
 5. Add the Supabase URL and anon key to `.env.local`.
 
 Profiles are saved with `status = 'pending'` by default. To make a profile public, manually set `status = 'approved'` in Supabase.
+
+### GitHub OAuth
+
+The profile auth flow supports both email links and GitHub OAuth. GitHub is only used for sign-in. The app does not sync repositories, contribution activity, rankings, or graphs.
+
+In Supabase, go to Authentication -> Providers -> GitHub:
+
+1. Enable GitHub.
+2. Add the GitHub OAuth client ID and client secret from your GitHub OAuth app.
+3. Use the Supabase callback URL shown in the GitHub provider settings as the Authorization callback URL in GitHub.
+4. Confirm the Supabase Site URL and redirect allow list below include the production domain and local development ports.
+
+When a user signs in with GitHub, the app redirects back to `/profile/edit`. If Supabase provides a simple GitHub username in user metadata, the editor may prefill the GitHub URL. It does not write GitHub activity data.
 
 ### Supabase Auth URLs
 
@@ -121,6 +142,21 @@ https://signal-layer-website.vercel.app/profile/edit
 
 If confirmation emails still point to an older domain, update the Supabase Site URL and redirect allow list, then send a new email link. Existing email links keep the redirect URL they were generated with.
 
+### Admin Approval Flow
+
+The admin review page lives at `/admin/profiles`.
+
+Set these server-side environment variables locally and in Vercel:
+
+```bash
+SUPABASE_SERVICE_ROLE_KEY=
+ADMIN_EMAILS=admin@example.com,another-admin@example.com
+```
+
+Admins must sign in with one of the emails in `ADMIN_EMAILS`. The browser sends the Supabase access token to the admin API, the server verifies the user email, and only the server uses the Supabase service role key to read and update pending profiles.
+
+Pending profiles can be approved or hidden. Approved profiles appear publicly in `/builders`. Hidden profiles stay out of the public directory.
+
 ## Database Schema
 
 The schema contains:
@@ -132,15 +168,17 @@ The required fields from the MVP brief are included. Array fields use `text[]` f
 
 Row-level security is enabled. Public users can only read approved profiles and their projects. Authenticated users can insert and update their own pending profile and manage projects attached to their own profile.
 
-For admin moderation, use the Supabase dashboard or add a separate admin role/policy later.
+Admin moderation is intentionally small. Use `/admin/profiles` for pending profile review, or use the Supabase dashboard directly for exceptional cases.
 
 ## Deployment Notes For Vercel
 
 1. Import the GitHub repository into Vercel.
 2. Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` in Vercel project settings.
-3. Confirm the Supabase Auth Site URL is `https://signal-layer-website.vercel.app`.
-4. Add `https://signal-layer-website.vercel.app/**` to Supabase Auth redirect URLs.
-5. Deploy.
+3. Set `SUPABASE_SERVICE_ROLE_KEY` and `ADMIN_EMAILS` in Vercel if you want `/admin/profiles`.
+4. Confirm the Supabase Auth Site URL is `https://signal-layer-website.vercel.app`.
+5. Add `https://signal-layer-website.vercel.app/**` to Supabase Auth redirect URLs.
+6. Configure the GitHub provider in Supabase if you want GitHub login.
+7. Deploy.
 
 No secrets should be committed. The anon key is expected to be public, but it should still come from environment variables.
 
@@ -148,7 +186,6 @@ No secrets should be committed. The anon key is expected to be public, but it sh
 
 ```bash
 npm run typecheck
+npm run lint
 npm run build
 ```
-
-Use `npm run lint` once dependencies are installed.
