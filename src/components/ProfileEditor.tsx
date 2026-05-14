@@ -328,14 +328,45 @@ export function ProfileEditor() {
       }));
 
     if (projectPayload.length) {
-      const { data: savedProjects, error: projectError } = await supabase
-        .from("projects")
-        .upsert(projectPayload)
-        .select("id, name, description, url, tags");
+      const existingProjects = projectPayload.filter((project): project is typeof project & { id: string } => Boolean(project.id));
+      const newProjects = projectPayload
+        .filter((project) => !project.id)
+        .map((project) => ({
+          profile_id: project.profile_id,
+          name: project.name,
+          description: project.description,
+          url: project.url,
+          tags: project.tags
+        }));
 
-      if (projectError) {
+      if (existingProjects.length) {
+        const { error: updateProjectError } = await supabase.from("projects").upsert(existingProjects);
+
+        if (updateProjectError) {
+          setIsBusy(false);
+          setMessage(updateProjectError.message);
+          return;
+        }
+      }
+
+      if (newProjects.length) {
+        const { error: insertProjectError } = await supabase.from("projects").insert(newProjects);
+
+        if (insertProjectError) {
+          setIsBusy(false);
+          setMessage(insertProjectError.message);
+          return;
+        }
+      }
+
+      const { data: savedProjects, error: loadProjectError } = await supabase
+        .from("projects")
+        .select("id, name, description, url, tags")
+        .eq("profile_id", data.id);
+
+      if (loadProjectError) {
         setIsBusy(false);
-        setMessage(projectError.message);
+        setMessage(loadProjectError.message);
         return;
       }
 
