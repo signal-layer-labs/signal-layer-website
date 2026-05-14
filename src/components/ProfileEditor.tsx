@@ -47,6 +47,8 @@ const emptyForm: ProfileForm = {
   open_to_opportunities: false
 };
 
+const maxProjects = 5;
+
 function splitList(value: string) {
   return value
     .split(",")
@@ -105,7 +107,17 @@ function validateProfile(form: ProfileForm, projects: ProjectForm[]) {
     }
   });
 
+  if (projects.length > maxProjects) {
+    errors.push(`Add up to ${maxProjects} projects.`);
+  }
+
   projects.forEach((project, index) => {
+    const hasProjectContent = [project.name, project.description, project.url, project.tags].some((value) => value.trim());
+
+    if (hasProjectContent && !project.name.trim()) {
+      errors.push(`Project ${index + 1} needs a name.`);
+    }
+
     if (project.url.trim() && !isValidExternalUrl(project.url)) {
       errors.push(`Project ${index + 1} URL must be valid.`);
     }
@@ -121,6 +133,7 @@ export function ProfileEditor() {
   const [profileId, setProfileId] = useState<string | null>(null);
   const [form, setForm] = useState<ProfileForm>(emptyForm);
   const [projects, setProjects] = useState<ProjectForm[]>([]);
+  const [deletedProjectIds, setDeletedProjectIds] = useState<string[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const [isBusy, setIsBusy] = useState(false);
   const normalizedEmail = normalizeEmail(email);
@@ -202,6 +215,7 @@ export function ProfileEditor() {
           tags: (project.tags ?? []).join(", ")
         }))
       );
+      setDeletedProjectIds([]);
     }
 
     loadProfile();
@@ -292,27 +306,54 @@ export function ProfileEditor() {
 
     setProfileId(data.id);
 
-    if (projects.length) {
-      const projectPayload = projects
-        .filter((project) => project.name.trim())
-        .map((project) => ({
-          id: project.id,
-          profile_id: data.id,
-          name: project.name.trim(),
-          description: project.description.trim() || null,
-          url: project.url.trim() || null,
-          tags: splitList(project.tags)
-        }));
+    if (deletedProjectIds.length) {
+      const { error: deleteProjectError } = await supabase.from("projects").delete().in("id", deletedProjectIds);
 
-      if (projectPayload.length) {
-        const { error: projectError } = await supabase.from("projects").upsert(projectPayload).select("id");
-        if (projectError) {
-          setIsBusy(false);
-          setMessage(projectError.message);
-          return;
-        }
+      if (deleteProjectError) {
+        setIsBusy(false);
+        setMessage(deleteProjectError.message);
+        return;
       }
     }
+
+    const projectPayload = projects
+      .filter((project) => [project.name, project.description, project.url, project.tags].some((value) => value.trim()))
+      .map((project) => ({
+        ...(project.id ? { id: project.id } : {}),
+        profile_id: data.id,
+        name: project.name.trim(),
+        description: project.description.trim() || null,
+        url: project.url.trim() || null,
+        tags: splitList(project.tags)
+      }));
+
+    if (projectPayload.length) {
+      const { data: savedProjects, error: projectError } = await supabase
+        .from("projects")
+        .upsert(projectPayload)
+        .select("id, name, description, url, tags")
+        .order("created_at", { ascending: true });
+
+      if (projectError) {
+        setIsBusy(false);
+        setMessage(projectError.message);
+        return;
+      }
+
+      setProjects(
+        (savedProjects ?? []).map((project: { id: string; name: string; description: string | null; url: string | null; tags: string[] | null }) => ({
+          id: project.id,
+          name: project.name ?? "",
+          description: project.description ?? "",
+          url: project.url ?? "",
+          tags: (project.tags ?? []).join(", ")
+        }))
+      );
+    } else {
+      setProjects([]);
+    }
+
+    setDeletedProjectIds([]);
 
     setIsBusy(false);
     setMessage("Profile saved. It is pending review before appearing publicly. Edits are reviewed before the profile appears in the directory.");
@@ -431,11 +472,19 @@ export function ProfileEditor() {
       </section>
 
       <section className="grid gap-4 rounded-lg border border-line bg-panel p-5">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold text-ink">Projects</h2>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-ink">Projects</h2>
+            <p className="mt-1 text-sm text-muted">Add up to {maxProjects} examples of practical work.</p>
+          </div>
           <button
-            className="inline-flex items-center gap-2 rounded-md border border-line px-3 py-2 text-sm text-ink hover:border-signal/60"
-            onClick={() => setProjects([...projects, { name: "", description: "", url: "", tags: "" }])}
+            className="inline-flex items-center justify-center gap-2 rounded-md border border-line px-3 py-2 text-sm text-ink hover:border-signal/60 disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={projects.length >= maxProjects}
+            onClick={() => {
+              if (projects.length < maxProjects) {
+                setProjects([...projects, { name: "", description: "", url: "", tags: "" }]);
+              }
+            }}
             type="button"
           >
             <Plus size={16} />
@@ -445,7 +494,16 @@ export function ProfileEditor() {
         {projects.map((project, index) => (
           <div className="grid gap-3 rounded-md border border-line bg-field p-4" key={project.id ?? index}>
             <div className="flex justify-end">
-              <button className="text-muted hover:text-ink" onClick={() => setProjects(projects.filter((_, projectIndex) => projectIndex !== index))} type="button">
+              <button
+                className="text-muted hover:text-ink"
+                onClick={() => {
+                  if (project.id) {
+                    setDeletedProjectIds((currentIds) => [...currentIds, project.id as string]);
+                  }
+                  setProjects(projects.filter((_, projectIndex) => projectIndex !== index));
+                }}
+                type="button"
+              >
                 <Trash2 size={17} />
               </button>
             </div>

@@ -17,6 +17,7 @@ export function BuilderCard({ profile }: BuilderCardProps) {
           <div className="mb-2 flex flex-wrap items-center gap-2">
             {profile.open_to_collaboration ? <Tag tone="signal">Open to collaboration</Tag> : null}
             {profile.open_to_opportunities ? <Tag>Open to opportunities</Tag> : null}
+            {profile.projects?.length ? <Tag tone="muted">{profile.projects.length} {profile.projects.length === 1 ? "project" : "projects"}</Tag> : null}
             {profile.is_demo ? <Tag tone="muted">Demo data</Tag> : null}
           </div>
           <Link href={`/builders/${profile.slug}`} className="text-xl font-semibold text-ink hover:text-signal">

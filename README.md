@@ -29,6 +29,7 @@ This MVP starts with the simplest useful foundation. It is not LinkedIn, a job b
 - Minimal admin review page at `/admin/profiles`
 - Pending profile review UX with a local preview
 - Basic profile validation before save
+- Project showcase on public builder profiles
 - Skills, interests, languages, location, timezone, and availability fields
 - GitHub, LinkedIn, portfolio, and project links
 - Profile status: `pending`, `approved`, `hidden`
@@ -57,6 +58,8 @@ This MVP starts with the simplest useful foundation. It is not LinkedIn, a job b
 2. Create a builder profile at `/profile/edit`.
 3. The profile is saved as pending while it is reviewed.
 4. Once approved, the profile appears in `/builders`.
+
+Projects help builders show practical work in context. They are intentionally simple: name, description, URL, and tags. The directory cards stay lightweight and only show a small project count.
 
 ## Local Setup
 
