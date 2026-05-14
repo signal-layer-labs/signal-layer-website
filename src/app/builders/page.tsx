@@ -44,7 +44,7 @@ export default async function BuildersPage({ searchParams }: BuildersPageProps) 
 
       {!builders.length ? (
         <div className="mt-6 rounded-lg border border-line bg-panel p-8 text-center text-muted">
-          No approved builders match this search yet.
+          No approved profiles yet. Profiles are reviewed before appearing here.
         </div>
       ) : null}
     </div>

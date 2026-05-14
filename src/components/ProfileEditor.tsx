@@ -315,7 +315,7 @@ export function ProfileEditor() {
     }
 
     setIsBusy(false);
-    setMessage("Your profile was saved and is pending review. Approved profiles appear publicly in the directory.");
+    setMessage("Profile saved. It is pending review before appearing publicly. Edits are reviewed before the profile appears in the directory.");
   }
 
   if (!supabase) {
@@ -346,7 +346,7 @@ export function ProfileEditor() {
           <span className="h-px flex-1 bg-line" />
         </div>
         <form
-          className="mt-6 flex flex-col gap-3 sm:flex-row"
+          className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-start"
           onSubmit={(event) => {
             event.preventDefault();
             sendMagicLink();
@@ -393,7 +393,7 @@ export function ProfileEditor() {
         <p className="text-sm uppercase tracking-[0.22em] text-signal">Builder profile</p>
         <h1 className="mt-3 text-3xl font-semibold text-ink">Create or edit your public profile</h1>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">
-          New and edited profiles are saved as pending by default. Approved profiles appear publicly in the directory.
+          New profiles and edits are saved as pending. Approved profiles appear publicly in the directory after review.
         </p>
       </div>
 

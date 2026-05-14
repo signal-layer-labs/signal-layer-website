@@ -99,8 +99,9 @@ export function AdminProfilesManager() {
       return;
     }
 
-    setProfiles((currentProfiles) => currentProfiles.filter((profile) => profile.id !== profileId));
-    setMessage(status === "approved" ? "Profile approved." : "Profile hidden.");
+    const profile = profiles.find((currentProfile) => currentProfile.id === profileId);
+    setProfiles((currentProfiles) => currentProfiles.filter((currentProfile) => currentProfile.id !== profileId));
+    setMessage(status === "approved" ? `${profile?.full_name ?? "Profile"} approved.` : `${profile?.full_name ?? "Profile"} hidden.`);
   }
 
   return (
@@ -133,7 +134,7 @@ export function AdminProfilesManager() {
                 <p className="mt-2 text-sm leading-6 text-muted">{profile.headline}</p>
                 {profile.bio ? <p className="mt-3 max-w-3xl text-sm leading-6 text-muted">{profile.bio}</p> : null}
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="grid gap-2 sm:flex sm:flex-wrap">
                 <button className="rounded-md bg-signal px-3 py-2 text-sm font-semibold text-canvas disabled:opacity-60" disabled={isBusy} onClick={() => updateProfile(profile.id, "approved")} type="button">
                   Approve
                 </button>

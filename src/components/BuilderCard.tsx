@@ -31,7 +31,7 @@ export function BuilderCard({ profile }: BuilderCardProps) {
           ))}
         </div>
 
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted">
+        <div className="flex flex-col gap-2 text-sm text-muted sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-4">
           {profile.location || profile.timezone ? (
             <span className="inline-flex items-center gap-1.5">
               <MapPin size={15} />

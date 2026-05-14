@@ -51,6 +51,13 @@ This MVP starts with the simplest useful foundation. It is not LinkedIn, a job b
 - Recommendation engine
 - Advanced reputation graph
 
+## Early Tester Flow
+
+1. Log in with GitHub or an email magic link.
+2. Create a builder profile at `/profile/edit`.
+3. The profile is saved as pending while it is reviewed.
+4. Once approved, the profile appears in `/builders`.
+
 ## Local Setup
 
 Install dependencies:
