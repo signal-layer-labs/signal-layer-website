@@ -331,8 +331,7 @@ export function ProfileEditor() {
       const { data: savedProjects, error: projectError } = await supabase
         .from("projects")
         .upsert(projectPayload)
-        .select("id, name, description, url, tags")
-        .order("created_at", { ascending: true });
+        .select("id, name, description, url, tags");
 
       if (projectError) {
         setIsBusy(false);
